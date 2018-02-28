@@ -133,17 +133,17 @@ fi
 
 # 6TH SECTION - INSTALL DTR
 
-if [ -z "$UCP_NODE"]; then
-  export UCP_NODE=$(docker node ls | grep mgr0 | awk '{print $3}');
-fi
+#if [ -z "$UCP_NODE"]; then
+#  export UCP_NODE=$(docker node ls | grep mgr0 | awk '{print $3}');
+#fi
 
 
-docker run --rm \
-  docker/dtr:$DTR_VERSION install \
-  --replica-http-port 12392 \
-  --replica-https-port 12391 \
-  --ucp-url $UCP_PUBLIC_FQDN \
-  --ucp-node $UCP_NODE \
-  --dtr-external-url $DTR_PUBLIC_FQDN \
-  --ucp-username admin --ucp-password $UCP_ADMIN_PASSWORD \
-  --ucp-insecure-tls 
+#docker run --rm \
+# docker/dtr:$DTR_VERSION install \
+#  --replica-http-port 12392 \
+#  --replica-https-port 12391 \
+#  --ucp-url $UCP_PUBLIC_FQDN \
+#  --ucp-node $UCP_NODE \
+#  --dtr-external-url $DTR_PUBLIC_FQDN \
+#  --ucp-username admin --ucp-password $UCP_ADMIN_PASSWORD \
+#  --ucp-insecure-tls 
