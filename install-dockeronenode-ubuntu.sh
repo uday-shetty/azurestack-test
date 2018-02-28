@@ -89,6 +89,28 @@ docker run \
 
 # 5TH SECTION - INSTALL UCP
 
+#Download Docker UCP images
+images=$(docker run --rm $UCP_IMAGE images --list $IMAGE_LIST_ARGS)
+for im in $images; do
+    docker pull $im
+done
+
+#Download DTR images
+images=$(docker run --rm $DTR_IMAGE images)
+for im in $images; do
+    docker pull $im
+done
+
+# Check if UCP is installed, if it's installed join additional manager nodes
+if [[ $(curl --insecure --silent --output /dev/null --write-out '%{http_code}' https://"$UCP_PUBLIC_FQDN"/_ping) -eq 200 ]];
+then
+	Token=$(curl http://$PRIVATE_IP:9024/token/manager/)
+	echo "TOKEN: $token"
+	JoinTarget=$PRIVATE_IP:2377
+	docker swarm join --token $Token $JoinTarget
+	exit 0
+fi
+
 if [ "$DOCKER_LICENSE" != "" ]; then
     	LIC_FILE=/tmp/docker_subscription.lic
 	echo -n  "$UCP_LICENSE" | base64 -d >> $LIC_FILE
@@ -103,19 +125,6 @@ else
         echo "Unable to read license file. Please upload license in UI after installation."
 
 fi
-
-
-#Download Docker UCP images
-images=$(docker run --rm $UCP_IMAGE images --list $IMAGE_LIST_ARGS)
-for im in $images; do
-    docker pull $im
-done
-
-#Download DTR images
-images=$(docker run --rm $DTR_IMAGE images)
-for im in $images; do
-    docker pull $im
-done
 
 docker run --rm --name ucp \
   -v /var/run/docker.sock:/var/run/docker.sock \
