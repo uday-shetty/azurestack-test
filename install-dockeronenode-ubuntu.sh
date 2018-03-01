@@ -102,41 +102,34 @@ for im in $images; do
 done
 
 # Check if UCP is installed, if it's installed join additional manager nodes
-if [[ $(curl --insecure --silent --output /dev/null --write-out '%{http_code}' https://"$UCP_PUBLIC_FQDN"/_ping) -eq 200 ]];
+if [[ $(curl --insecure --silent --output /dev/null --write-out '%{http_code}' https://"$UCP_PUBLIC_FQDN"/_ping) -ne 200 ]];
 then
+	if [ "$DOCKER_LICENSE" != "" ]; then
+    		LIC_FILE=/tmp/docker_subscription.lic
+		echo -n  "$UCP_LICENSE" | base64 -d >> $LIC_FILE
+		jq -e '.|{key_id}' $LIC_FILE >> /dev/null
+       		if [[ $? -eq 0 ]]
+        	then
+        		echo "valid license "
+        	else 
+			echo "License input must be a valid JSON license key. Please upload license in UI after installation."
+        	fi
+	else
+        	echo "Unable to read license file. Please upload license in UI after installation."
+
+	fi
+	docker run --rm --name ucp \
+  	-v /var/run/docker.sock:/var/run/docker.sock \
+  	-v /tmp/docker_subscription.lic:/config/docker_subscription.lic \
+  	docker/ucp:$UCP_VERSION \
+  	install --controller-port 12390 --san $UCP_PUBLIC_FQDN --admin-password $UCP_ADMIN_PASSWORD
+else	
 	Token=$(curl http://$PRIVATE_IP:9024/token/manager/)
 	echo "TOKEN: $token"
 	JoinTarget=$PRIVATE_IP:2377
 	docker swarm join --token $Token $JoinTarget
-	exit 0
 fi
 
-if [ "$DOCKER_LICENSE" != "" ]; then
-    	LIC_FILE=/tmp/docker_subscription.lic
-	echo -n  "$UCP_LICENSE" | base64 -d >> $LIC_FILE
-	jq -e '.|{key_id}' $LIC_FILE >> /dev/null
-       	if [[ $? -eq 0 ]]
-        then
-        	echo "valid license "
-        else 
-		echo "License input must be a valid JSON license key. Please upload license in UI after installation."
-        fi
-else
-        echo "Unable to read license file. Please upload license in UI after installation."
-
-fi
-
-docker run --rm --name ucp \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /tmp/docker_subscription.lic:/config/docker_subscription.lic \
-  docker/ucp:$UCP_VERSION \
-  install --controller-port 12390 --san $UCP_PUBLIC_FQDN --admin-password $UCP_ADMIN_PASSWORD
-
-# Check if UCP is installed, if not sleep for 15
-if [[ $(curl --insecure --silent --output /dev/null --write-out '%{http_code}' https://"$UCP_PUBLIC_FQDN"/_ping) -ne 200 ]];
-then
-	sleep 15
-fi
 
 #/bin/rm -rf /tmp/docker_subscription.lic
 
